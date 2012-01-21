@@ -123,11 +123,17 @@ m")
                         (drop-while (fn [e] (<= (:num e)
                                                 (:num h))))
                         (take-while (fn [e] (> (:header e)
-                                               (:header h))))))))
+                                               (:header h))))
+                        (filter (fn [e] (= (:header e)
+                                           (inc (:header h)))))))))
 
 (deftest
   test-add-children-headers
   (let [headers (add-children-headers (headers-only sample-full-entries))]
+    (is (= (map :num (:headers (nth headers 0)))
+           [1 14 32]))
+    (is (= (map :num (:headers (nth headers 4)))
+           [18]))
     (is (= (map :num (:headers (nth headers 1)))
            [6 10]))
     (is (= (map :num (:headers (nth headers 5)))
@@ -150,17 +156,29 @@ m")
     (is (= (count (:headers (second master)))
            2))))
 
-(def custom-js
-  "
+(def custom-js "
+var history = []
+function forward(i) {
+  history.push(i)
+  setBackButton()
+  showOnlyDiv(i)
+}
+function back() {
+  if(history.length == 1) return
+  history.pop()
+  setBackButton()
+  var last = history.slice().pop()
+  showOnlyDiv(last)
+}
 function showOnlyDiv(i) {
   $('div').hide()
   $('div#' + i).show()
 }
-$(function() {
-  showOnlyDiv(0)
-})
-  "
-  )
+function setBackButton() {
+  $('#back')[(history.length == 1) ? 'hide' : 'show']()
+}
+$(function() { forward(0) })
+")
 
 (spit "/sandbox/s.html"
       (html5
@@ -168,11 +186,10 @@ $(function() {
         (javascript-tag custom-js)
         (for [h (master-data-struture sample-doc)]
           [:div {:id (:num h)}
-           [:h2 {:onclick "showOnlyDiv(0)"} "Back to root"]
+           [:h2#back {:onclick "back()"} "Back"]
            [:h1 (:text h)]
            (for [t (:texts h)] [:p (:text t)])
            (for [s (:headers h)]
              [:h2
-              {:onclick (str "showOnlyDiv(" (:num s) ")")}
+              {:onclick (str "forward(" (:num s) ")")}
               (:text s)])])))
-
