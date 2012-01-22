@@ -2,7 +2,8 @@
   (:require [clojure.string :as str])
   (:use [clojure.test])
   (:use [hiccup.core])
-  (:use [hiccup.page-helpers]))
+  (:use [hiccup.page-helpers])
+  (:gen-class))
 
 (def sample-doc "# h1
 a
@@ -166,8 +167,8 @@ function forward(i) {
 function back() {
   if(history.length == 1) return
   history.pop()
-  setBackButton()
   var last = history.slice().pop()
+  setBackButton()
   showOnlyDiv(last)
 }
 function showOnlyDiv(i) {
@@ -180,16 +181,75 @@ function setBackButton() {
 $(function() { forward(0) })
 ")
 
-(spit "/sandbox/s.html"
-      (html5
-        (include-js "https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js")
-        (javascript-tag custom-js)
-        (for [h (master-data-struture sample-doc)]
-          [:div {:id (:num h)}
-           [:h2#back {:onclick "back()"} "Back"]
-           [:h1 (:text h)]
-           (for [t (:texts h)] [:p (:text t)])
-           (for [s (:headers h)]
-             [:h2
-              {:onclick (str "forward(" (:num s) ")")}
-              (:text s)])])))
+(def custom-css "
+  body {
+    background-color: #d6d6c3;  /* white */
+    color: #414050;  /* dark gray */
+    padding: 0px;
+    margin: 0px;
+  }
+  h2#back {
+    letter-spacing: 1.5px;
+    font-size: 18px;
+    padding: 0.5em;
+    margin: 5px;
+    background-color: #d49147;  /* orange */
+  }
+  h1 {
+    font-family: 'Lucida Sans Unicode','Lucida Grande','Lucida Sans',Lucida,sans-serif;
+    font-size: 36px;
+    padding: 0.4em;
+    margin: 5px;
+    background-color: #97d9d7;  /* blue */
+  }
+  h2 {
+    font-family: 'Lucida Sans Unicode','Lucida Grande','Lucida Sans',Lucida,sans-serif;
+    font-size: 18px;
+    padding: 0.5em;
+    margin: 2px;
+    background-color: #b8a997;  /* light gray */
+  }
+  pre {
+    font-family: monospace;
+    font-size: 18px;
+    line-height: 1.2em;
+    margin: 0;
+    padding: 0;
+    padding-left: 1em;
+  }
+")
+
+(defn gen-page [in-text]
+  (html5
+    [:style {:type "text/css"} custom-css]
+    (include-js "https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js")
+    (javascript-tag custom-js)
+    (for [h (master-data-struture in-text)]
+      [:div {:id (:num h)}
+       [:h2#back {:onclick "back()" } "Back"]
+       (when (:text h) [:h1 (:text h)])
+       (for [t (:texts h)]
+         (if (empty? (str/trim (:text t)))
+           [:br]
+           [:pre (:text t)]))
+       (for [s (:headers h)]
+         [:h2
+          {:onclick (str "forward(" (:num s) ")")}
+          (:text s)])])))
+
+(defn help-msg []
+  (println "
+Program takes 2 args:
+
+- in-path  : a markdown-like file
+- out-path : where to write file
+"))
+
+(defn main [in-path out-path]
+  (spit out-path (gen-page (slurp in-path))))
+
+(defn -main [& args]
+  (if (not= 2 (count args))
+    (help-msg)
+    (main (first args)
+          (second args))))
