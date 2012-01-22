@@ -158,16 +158,16 @@ m")
            2))))
 
 (def custom-js "
-var history = []
-function forward(i) {
-  history.push(i)
+var my_history = []
+function my_forward(i) {
+  my_history.push(i)
   setBackButton()
   showOnlyDiv(i)
 }
-function back() {
-  if(history.length == 1) return
-  history.pop()
-  var last = history.slice().pop()
+function my_back() {
+  if(my_history.length == 1) return
+  my_history.pop()
+  var last = my_history.slice().pop()
   setBackButton()
   showOnlyDiv(last)
 }
@@ -176,9 +176,9 @@ function showOnlyDiv(i) {
   $('div#' + i).show()
 }
 function setBackButton() {
-  $('#back')[(history.length == 1) ? 'hide' : 'show']()
+  $('#back')[(my_history.length == 1) ? 'hide' : 'show']()
 }
-$(function() { forward(0) })
+$(function() { my_forward(0) })
 ")
 
 (def custom-css "
@@ -191,42 +191,48 @@ $(function() { forward(0) })
   h2#back {
     letter-spacing: 1.5px;
     font-size: 18px;
-    padding: 0.5em;
+    padding: 1em;
     margin: 5px;
     background-color: #d49147;  /* orange */
   }
   h1 {
     font-family: 'Lucida Sans Unicode','Lucida Grande','Lucida Sans',Lucida,sans-serif;
     font-size: 36px;
-    padding: 0.4em;
+    padding: 0.1em;
     margin: 5px;
     background-color: #97d9d7;  /* blue */
   }
   h2 {
     font-family: 'Lucida Sans Unicode','Lucida Grande','Lucida Sans',Lucida,sans-serif;
     font-size: 18px;
-    padding: 0.5em;
+    padding: 1em;
     margin: 2px;
     background-color: #b8a997;  /* light gray */
   }
   pre {
     font-family: monospace;
-    font-size: 18px;
+    font-size: 16px;
     line-height: 1.2em;
     margin: 0;
     padding: 0;
-    padding-left: 1em;
+  }
+  div {
+    margin: 0;
+    padding: 0;
   }
 ")
 
 (defn gen-page [in-text]
   (html5
     [:style {:type "text/css"} custom-css]
-    (include-js "https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js")
-    (javascript-tag custom-js)
+    ;(include-js "https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js")
+    (include-js "http://code.jquery.com/jquery-1.5.1.min.js")
+    ;(javascript-tag custom-js)
+    [:script {:type "text/javascript"}
+     custom-js]
     (for [h (master-data-struture in-text)]
       [:div {:id (:num h)}
-       [:h2#back {:onclick "back()" } "Back"]
+       [:h2#back {:onclick "my_back()" } "Back"]
        (when (:text h) [:h1 (:text h)])
        (for [t (:texts h)]
          (if (empty? (str/trim (:text t)))
@@ -234,7 +240,7 @@ $(function() { forward(0) })
            [:pre (:text t)]))
        (for [s (:headers h)]
          [:h2
-          {:onclick (str "forward(" (:num s) ")")}
+          {:onclick (str "my_forward(" (:num s) ")")}
           (:text s)])])))
 
 (defn help-msg []
@@ -253,3 +259,10 @@ Program takes 2 args:
     (help-msg)
     (main (first args)
           (second args))))
+
+(comment
+
+  (main "/Users/thanthese/Dropbox/all-notes.txt"
+      "/Users/thanthese/Dropbox/view-notes.html")
+
+)
